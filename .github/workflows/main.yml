@@ -18,7 +18,30 @@ on:
       - reopened
 
 jobs:
-  backend-unit-tests:
+  backend-unit-test:
+    name: Backend Unit Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: ${{ env.DISTRIBUTION }}
+        cache: ${{ env.MAVEN_CACHE }}
+
+    - name: Clean Backend
+      run: mvn clean --file backend/pom.xml
+
+    - name: Build Backend
+      run: mvn --batch-mode -DskipTests package --file backend/pom.xml
+
+    - name: Test Backend
+      run: mvn --batch-mode test --file backend/pom.xml
+  
+  backend-sonarqube-scan:
     name: Build and analyze
     runs-on: ubuntu-latest
     steps:
