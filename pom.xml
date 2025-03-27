@@ -17,7 +17,7 @@
     <properties>
         <maven.compiler.source>23</maven.compiler.source>
         <maven.compiler.target>23</maven.compiler.target>        
-        <sonar.organization>mtech-swe5006-grp4</sonar.organization>
+        <sonar.organization>retailpulse</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
