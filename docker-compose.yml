@@ -1,0 +1,35 @@
+services:
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: RetailPulseDB
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 30s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
+    networks:
+      - springboot-network
+
+  app:
+    build: .
+    ports:
+      - "8085:8080" # Host port 8085 -> Container port 8080
+    depends_on:
+      mysql:
+        condition: service_healthy  # Ensures MySQL is healthy before Spring Boot starts
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/RetailPulseDB
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=password
+    networks:
+      - springboot-network
+
+networks:
+  springboot-network:
+    driver: bridge
+
