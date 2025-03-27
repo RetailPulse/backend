@@ -6,6 +6,9 @@ env:
   MAVEN_CACHE: 'maven'        # Centralized cache type
 
 on:
+  push:
+    branches: 
+      - "main"
   pull_request:
     branches:
       - "main" # Trigger on pull requests targeting the "stage" branch
