@@ -33,13 +33,13 @@ jobs:
         cache: ${{ env.MAVEN_CACHE }}
 
     - name: Clean Backend
-      run: mvn clean --file backend/pom.xml
+      run: mvn clean --file pom.xml
 
     - name: Build Backend
-      run: mvn --batch-mode -DskipTests package --file backend/pom.xml
+      run: mvn --batch-mode -DskipTests package --file pom.xml
 
     - name: Test Backend
-      run: mvn --batch-mode test --file backend/pom.xml
+      run: mvn --batch-mode test --file pom.xml
   
   backend-sonarqube-scan:
     name: Build and analyze
