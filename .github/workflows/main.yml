@@ -6,9 +6,6 @@ env:
   MAVEN_CACHE: 'maven'        # Centralized cache type
 
 on:
-  push:
-    branches: 
-      - "main"
   pull_request:
     branches:
       - "main" # Trigger on pull requests targeting the "stage" branch
@@ -66,8 +63,17 @@ jobs:
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          restore-keys: ${{ runner.os }}-m2      
+      - name: Build, Test, and Generate Code Coverage Report
+        run: mvn -B clean verify jacoco:report  
+      - name: Upload Code Coverage Report as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: target/site/jacoco/
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=RetailPulse_backend
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -Dsonar.projectKey=RetailPulse_backend
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
