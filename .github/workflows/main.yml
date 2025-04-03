@@ -8,7 +8,7 @@ env:
 on:
   pull_request:
     branches:
-      - "main" # Trigger on pull requests targeting the "stage" branch
+      - "main" # Trigger on pull requests targeting the "main" branch
     types:
       - opened
       - synchronize
@@ -75,8 +75,7 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-          -Dsonar.projectKey=RetailPulse_backend \
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=retailpulse-backend \
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
           -Dsonar.branch.name=${{ github.ref_name }} \
           -X
