@@ -7,11 +7,11 @@ env:
 
 on:
   push:
-    branches: 
-      - "main"
+    branches:
+      - "main" # Trigger on pushes to the "main" branch
   pull_request:
     branches:
-      - "main" # Trigger on pull requests targeting the "stage" branch
+      - "main" # Trigger on pull requests targeting the "main" branch
     types:
       - opened
       - synchronize
@@ -43,6 +43,7 @@ jobs:
   
   backend-sonarqube-scan:
     name: Build and analyze
+    needs: backend-unit-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
@@ -66,8 +67,16 @@ jobs:
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          restore-keys: ${{ runner.os }}-m2      
+      - name: Build, Test, and Generate Code Coverage Report
+        run: mvn -B clean verify jacoco:report  
+      - name: Upload Code Coverage Report as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: target/site/jacoco/
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=RetailPulse_backend
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar 
+
