@@ -6,6 +6,9 @@ env:
   MAVEN_CACHE: 'maven'        # Centralized cache type
 
 on:
+  push:
+    branches:
+      - "main" # Trigger on pushes to the "main" branch
   pull_request:
     branches:
       - "main" # Trigger on pull requests targeting the "main" branch
@@ -40,7 +43,7 @@ jobs:
   
   backend-sonarqube-scan:
     name: Build and analyze
-    # needs: backend-unit-test
+    needs: backend-unit-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
