@@ -40,6 +40,7 @@ jobs:
   
   backend-sonarqube-scan:
     name: Build and analyze
+    needs: backend-unit-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
@@ -75,5 +76,5 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-          -Dsonar.projectKey=RetailPulse_backend
+          -Dsonar.projectKey=RetailPulse_backend \
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
