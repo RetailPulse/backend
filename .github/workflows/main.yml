@@ -102,7 +102,7 @@ jobs:
         run: snyk auth ${{ secrets.SNYK_TOKEN }}
 
       - name: Run Snyk to check for vulnerabilities (non-blocking)
-        run: snyk test --project-name=backend --org=retailpulse --severity-threshold=low || true
+        run: snyk test --project-name=c2977753-b40c-4cd6-b021-dc2da8760600 --org=retailpulse --severity-threshold=low || true
       
       - name: Monitor project in Snyk dashboard
-        run: snyk monitor --project-name=backend --org=retailpulse
+        run: snyk monitor --project-name=c2977753-b40c-4cd6-b021-dc2da8760600 --org=retailpulse
