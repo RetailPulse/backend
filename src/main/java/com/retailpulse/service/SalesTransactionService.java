@@ -1,169 +1,200 @@
 package com.retailpulse.service;
 
-import com.retailpulse.DTO.SalesTransactionDetailsDto;
-import com.retailpulse.entity.Inventory;
-import com.retailpulse.entity.SalesDetails;
-import com.retailpulse.entity.SalesTransaction;
-import com.retailpulse.repository.SalesDetailsRepository;
+import com.retailpulse.controller.request.SalesDetailsDto;
+import com.retailpulse.controller.request.SalesTransactionRequestDto;
+import com.retailpulse.controller.request.SuspendedTransactionDto;
+import com.retailpulse.controller.response.SalesTransactionResponseDto;
+import com.retailpulse.controller.response.TransientSalesTransactionDto;
+import com.retailpulse.entity.*;
+import com.retailpulse.exception.ErrorCodes;
+import com.retailpulse.repository.SalesTaxRepository;
 import com.retailpulse.repository.SalesTransactionRepository;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.retailpulse.service.exception.BusinessException;
+import com.retailpulse.util.DateUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class SalesTransactionService {
 
-    @Autowired
-    private SalesTransactionRepository salesTransactionRepository;
+    private final SalesTransactionRepository salesTransactionRepository;
+    private final SalesTaxRepository salesTaxRepository;
+    private final SalesTransactionHistory salesTransactionHistory;
+    private final StockUpdateService stockUpdateService;
 
-    @Autowired
-    private SalesDetailsRepository salesDetailsRepository;
-
-    @Autowired
-    private InventoryService inventoryService;
-
-    // Existing methods like createSalesTransaction, updateSalesTransaction, etc.
-
-    /**
-     * Calculates the sales tax for the provided list of SalesDetails.
-     *
-     * @param salesDetails the list of SalesDetails for which to calculate sales tax
-     * @return the calculated sales tax value
-     */
-    public Double calculateSalesTax(List<SalesDetails> salesDetails) {
-        // Delegates to the static method in SalesTransaction that performs the calculation.
-        return SalesTransaction.calculateSalesTaxBySalesDetails(salesDetails);
+    public SalesTransactionService(SalesTransactionRepository salesTransactionRepository,
+                                   SalesTaxRepository salesTaxRepository,
+                                   SalesTransactionHistory salesTransactionHistory,
+                                   StockUpdateService stockUpdateService) {
+        this.salesTransactionRepository = salesTransactionRepository;
+        this.salesTaxRepository = salesTaxRepository;
+        this.salesTransactionHistory = salesTransactionHistory;
+        this.stockUpdateService = stockUpdateService;
     }
 
-    public Optional<SalesTransaction> getSalesTransaction(Long id) {
-        return salesTransactionRepository.findById(id);
+
+    public TransientSalesTransactionDto calculateSalesTax(Long businessEntityId, List<SalesDetailsDto> salesDetailsDtos) {
+        BigDecimal subtotal = salesDetailsDtos.stream()
+                .map(salesDetailsDto -> new BigDecimal(salesDetailsDto.salesPricePerUnit()).multiply(new BigDecimal(salesDetailsDto.quantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        SalesTax salesTax = salesTaxRepository.findSalesTaxByTaxType(TaxType.GST)
+                .orElseGet(() -> {
+                    SalesTax newSalesTax = new SalesTax(TaxType.GST, new BigDecimal("0.09"));
+                    return salesTaxRepository.save(newSalesTax);
+                });
+
+        BigDecimal taxAmount = subtotal.multiply(salesTax.getTaxRate()).setScale(2, RoundingMode.HALF_UP);
+
+        return new TransientSalesTransactionDto(businessEntityId,
+                subtotal.toString(),
+                salesTax.getTaxType().name(),
+                salesTax.getTaxRate().toString(),
+                taxAmount.toString(),
+                subtotal.add(taxAmount).setScale(2, RoundingMode.HALF_UP).toString(),
+                salesDetailsDtos);
     }
 
     /**
-     * Retrieves a SalesTransaction along with its associated SalesDetails.
-     * This method builds a DTO that contains both the SalesTransaction and its SalesDetails records.
+     * Creates a new SalesTransaction with the provided details.
      *
-     * @param transactionId the ID of the SalesTransaction to retrieve
-     * @return a SalesTransactionDTO containing the transaction and its details
-     * @throws IllegalArgumentException if the transaction is not found
-     */
-    public Optional<SalesTransactionDetailsDto> getFullTransaction(Long transactionId) {
-        return salesTransactionRepository.findById(transactionId)
-            .map(transaction -> {
-                List<SalesDetails> details = salesDetailsRepository.findBySaleId(transactionId);
-                return new SalesTransactionDetailsDto(transaction, details);
-            });
-    }
-    
-
-    /**
-     * Creates a new SalesTransaction and persists each SalesDetails record.
-     * Before creating the transaction, it checks if each product has sufficient
-     * available inventory for the shop (businessEntityId). If a product does not have
-     * enough quantity, an IllegalArgumentException is thrown.
-     *
-     * @param businessEntityId the ID of the business entity (shop) making the sale
-     * @param salesDetails a list of SalesDetails to be saved as individual rows
-     * @return the persisted SalesTransaction, with calculated sales tax and total
+     * @param requestDto the SalesTransactionRequestDto containing the details of the transaction
+     * @return the created SalesTransactionResponseDto
      */
     @Transactional
-    public SalesTransaction createSalesTransaction(Long businessEntityId, @NotNull List<SalesDetails> salesDetails) {
-        // Check available inventory for each sales detail
-        for (SalesDetails detail : salesDetails) {
-            Optional<Inventory> inventoryOpt = inventoryService.getInventoryByProductIdAndBusinessEntityId(detail.getProductId(), businessEntityId);
-            if (inventoryOpt.isEmpty() || inventoryOpt.get().getQuantity() < detail.getQuantity()) {
-                throw new IllegalArgumentException("Insufficient inventory for product id: " + detail.getProductId());
-            }
-        }
+    public SalesTransactionResponseDto createSalesTransaction(SalesTransactionRequestDto requestDto) {
 
-        // Calculate subtotal from sales details
-        double subtotal = salesDetails.stream()
-                .mapToDouble(detail -> detail.getSalesPricePerUnit() * detail.getQuantity())
-                .sum();
+        SalesTax salesTax = salesTaxRepository.findSalesTaxByTaxType(TaxType.GST)
+                .orElseGet(() -> {
+                    SalesTax newSalesTax = new SalesTax(TaxType.GST, new BigDecimal("0.09"));
+                    return salesTaxRepository.save(newSalesTax);
+                });
 
         // Create a sales transaction with the provided businessEntityId and computed subtotal
-        SalesTransaction transaction = new SalesTransaction();
-        transaction.setBusinessEntityId(businessEntityId);
-        transaction.setSubtotal(subtotal);
-        // When saving, the entity lifecycle (@PrePersist) will calculate the sales tax and total.
+        SalesTransaction transaction = new SalesTransaction(requestDto.businessEntityId(), salesTax);
+
+        // map salesDetailsDto to salesDetails
+        List<SalesDetails> salesDetailEntities = requestDto.salesDetails().stream()
+                .map(salesDetailsDto -> new SalesDetails(salesDetailsDto.productId(), salesDetailsDto.quantity(), new BigDecimal(salesDetailsDto.salesPricePerUnit())))
+                .toList();
+
+        // Add each SalesDetails to the transaction
+        salesDetailEntities.forEach(transaction::addSalesDetails);
+
+        // For each SalesDetails entry, deduct inventory
+        stockUpdateService.deductStock(transaction);
+
         transaction = salesTransactionRepository.save(transaction);
 
-        // For each SalesDetails entry, deduct inventory and persist the sales detail
-        for (SalesDetails detail : salesDetails) {
-            // Deduct sold quantity from the shop's inventory
-            Inventory inventory = inventoryService.getInventoryByProductIdAndBusinessEntityId(detail.getProductId(), businessEntityId)
-                    .orElseThrow(() -> new IllegalArgumentException("Inventory not found for product id: " + detail.getProductId()));
-            inventory.setQuantity(inventory.getQuantity() - detail.getQuantity());
-            inventoryService.updateInventory(inventory.getId(), inventory);
+        // map salesTransaction to salesTransactionResponseDto
+        return new SalesTransactionResponseDto(
+                transaction.getId(),
+                transaction.getBusinessEntityId(),
+                transaction.getSubtotal().toString(),
+                transaction.getSalesTax().getTaxType().name(),
+                transaction.getSalesTax().getTaxRate().toString(),
+                transaction.getSalesTaxAmount().toString(),
+                transaction.getTotal().toString(),
+                requestDto.salesDetails(),
+                DateUtil.convertInstantToString(transaction.getTransactionDate(), DateUtil.DATE_TIME_FORMAT)
+        );
 
-            // Set the saleId for the sales detail and persist it
-            detail.setSaleId(transaction.getId());
-            salesDetailsRepository.save(detail);
-        }
-        return transaction;
     }
 
     /**
-     * Updates an existing SalesTransaction by replacing its SalesDetails with new ones.
-     * This method reverses the inventory deduction of the old sales details and applies the new ones.
-     * If any inventory update fails, the transaction is rolled back.
+     * Updates an existing SalesTransaction with new sales details.
      *
-     * @param transactionId the ID of the SalesTransaction to update
-     * @param newSalesDetails a list of new SalesDetails to replace the old ones
-     * @return the updated SalesTransaction
-     * @throws IllegalArgumentException if the transaction is not found or if inventory is insufficient
+     * @param transactionId       the ID of the SalesTransaction to update
+     * @param newSalesDetailsDtos the new sales details to update
+     * @return the updated SalesTransactionResponseDto
      */
     @Transactional
-    public SalesTransaction updateSalesTransaction(Long transactionId, @NotNull List<SalesDetails> newSalesDetails) {
+    public SalesTransactionResponseDto updateSalesTransaction(Long transactionId, List<SalesDetailsDto> newSalesDetailsDtos) {
         // Retrieve the existing transaction
         SalesTransaction existingTransaction = salesTransactionRepository.findById(transactionId)
-            .orElseThrow(() -> new IllegalArgumentException("Sales transaction not found for id: " + transactionId));
-
-        // Retrieve existing sales details for the transaction
-        List<SalesDetails> oldSalesDetails = salesDetailsRepository.findBySaleId(transactionId);
+                .orElseThrow(() -> new BusinessException(ErrorCodes.NOT_FOUND, "Sales transaction not found for id: " + transactionId));
 
         // Reverse inventory deduction for each old sales detail
-        for (SalesDetails oldDetail : oldSalesDetails) {
-            Inventory inventory = inventoryService.getInventoryByProductIdAndBusinessEntityId(oldDetail.getProductId(), existingTransaction.getBusinessEntityId())
-                .orElseThrow(() -> new IllegalArgumentException("Inventory not found for product id: " + oldDetail.getProductId()));
-            // Add back the quantity that was previously deducted
-            inventory.setQuantity(inventory.getQuantity() + oldDetail.getQuantity());
-            inventoryService.updateInventory(inventory.getId(), inventory);
-        }
+        stockUpdateService.addStock(existingTransaction);
 
-        // Remove the old sales details
-        salesDetailsRepository.deleteBySaleId(transactionId);
+        // Map new sales details DTOs to SalesDetails entities
+        List<SalesDetails> newSalesDetailEntities = newSalesDetailsDtos.stream()
+                .map(salesDetailsDto -> new SalesDetails(salesDetailsDto.productId(), salesDetailsDto.quantity(), new BigDecimal(salesDetailsDto.salesPricePerUnit())))
+                .toList();
 
-        // Process new sales details: check inventory, deduct quantities, and calculate new subtotal
-        double newSubtotal = 0.0;
-        for (SalesDetails newDetail : newSalesDetails) {
-            Optional<Inventory> inventoryOpt = inventoryService.getInventoryByProductIdAndBusinessEntityId(newDetail.getProductId(), existingTransaction.getBusinessEntityId());
-            if (inventoryOpt.isEmpty() || inventoryOpt.get().getQuantity() < newDetail.getQuantity()) {
-                throw new IllegalArgumentException("Insufficient inventory for product id: " + newDetail.getProductId());
-            }
-            Inventory inventory = inventoryOpt.get();
-            // Deduct the new quantity from inventory
-            inventory.setQuantity(inventory.getQuantity() - newDetail.getQuantity());
-            inventoryService.updateInventory(inventory.getId(), inventory);
+        existingTransaction.updateSalesDetails(newSalesDetailEntities);
 
-            // Accumulate the new subtotal
-            newSubtotal += newDetail.getSalesPricePerUnit() * newDetail.getQuantity();
+        stockUpdateService.deductStock(existingTransaction);
 
-            // Associate the new detail with the transaction
-            newDetail.setSaleId(transactionId);
-            salesDetailsRepository.save(newDetail);
-        }
-
-        // Update the transaction's subtotal and update the existing salesTax manually
-        existingTransaction.setSubtotal(newSubtotal);
-        // Simply saving will trigger calculateSalesTaxAndTotal() so that salesTax is updated.
         salesTransactionRepository.saveAndFlush(existingTransaction);
 
-        return existingTransaction;
+        return new SalesTransactionResponseDto(
+                existingTransaction.getId(),
+                existingTransaction.getBusinessEntityId(),
+                existingTransaction.getSubtotal().toString(),
+                existingTransaction.getSalesTax().getTaxType().name(),
+                existingTransaction.getSalesTax().getTaxRate().toString(),
+                existingTransaction.getSalesTaxAmount().toString(),
+                existingTransaction.getTotal().toString(),
+                newSalesDetailsDtos,
+                DateUtil.convertInstantToString(existingTransaction.getTransactionDate(), DateUtil.DATE_TIME_FORMAT)
+        );
+
+    }
+
+    /**
+     * Suspends a transaction by saving its state to the history.
+     *
+     * @param suspendedTransactionDto the DTO containing the details of the suspended transaction
+     */
+    public void suspendTransaction(SuspendedTransactionDto suspendedTransactionDto) {
+        SalesTax salesTax = salesTaxRepository.findSalesTaxByTaxType(TaxType.GST)
+                .orElseGet(() -> {
+                    SalesTax newSalesTax = new SalesTax(TaxType.GST, new BigDecimal("0.09"));
+                    return salesTaxRepository.save(newSalesTax);
+                });
+
+        SalesTransaction salesTransaction = new SalesTransaction(suspendedTransactionDto.businessEntityId(), salesTax);
+
+        List<SalesDetails> salesDetails = suspendedTransactionDto.salesDetails().stream()
+                .map(salesDetailsDto -> new SalesDetails(salesDetailsDto.productId(), salesDetailsDto.quantity(), new BigDecimal(salesDetailsDto.salesPricePerUnit())))
+                .toList();
+
+        salesDetails.forEach(salesTransaction::addSalesDetails);
+
+        SalesTransactionMemento memento = salesTransaction.saveToMemento();
+
+        salesTransactionHistory.suspendTransaction(suspendedTransactionDto.businessEntityId(), memento);
+
+    }
+
+    /**
+     * Retrieves suspended transactions for a given business entity.
+     *
+     * @param businessEntityId the ID of the business entity
+     * @return a list of suspended transactions
+     */
+    public List<TransientSalesTransactionDto> getSuspendedTransactions(Long businessEntityId) {
+
+        List<SalesTransactionMemento> suspendedTransactions = salesTransactionHistory.getSuspendedTransactions(businessEntityId);
+
+        // Map the suspended transactions to DTOs
+        return suspendedTransactions.stream()
+                .map(memento -> new TransientSalesTransactionDto(
+                        memento.businessEntityId(),
+                        memento.subTotal(),
+                        memento.taxType(),
+                        memento.taxRate(),
+                        memento.taxAmount(),
+                        memento.totalAmount(),
+                        memento.salesDetails()
+                ))
+                .toList();
     }
 
 }

@@ -1,26 +1,34 @@
 package com.retailpulse.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.Data;
+import jakarta.persistence.*;
+import lombok.Getter;
 
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
-@Data
+@Getter
 @Entity
 public class SalesTax {
 
-    public static final double TAX_RATE = 0.09;
-
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    private double value;
+    @Enumerated(EnumType.STRING)
+    private TaxType taxType;
 
-    public static double getTaxRate() {
-        return TAX_RATE;
+    private BigDecimal taxRate;
+
+    protected SalesTax() {
     }
+
+    public SalesTax(TaxType taxType, BigDecimal taxRate) {
+        this.taxType = taxType;
+        this.taxRate = taxRate;
+    }
+
+    public BigDecimal calculateTax(BigDecimal subtotal) {
+        return subtotal.multiply(this.taxRate).setScale(2, RoundingMode.HALF_UP);
+    }
+
 }
