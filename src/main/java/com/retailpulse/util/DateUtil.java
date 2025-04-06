@@ -4,6 +4,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 
 public class DateUtil {
+    public static String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     // Function to convert a String to Instant with a custom date-time format
     public static Instant convertStringToInstant(String dateTime, String format) {

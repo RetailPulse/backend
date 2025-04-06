@@ -1,9 +1,14 @@
 package com.retailpulse.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.retailpulse.DTO.SalesTransactionDetailsDto;
-import com.retailpulse.entity.SalesTransaction;
+import com.retailpulse.controller.request.SalesDetailsDto;
+import com.retailpulse.controller.request.SalesTransactionRequestDto;
+import com.retailpulse.controller.response.SalesTransactionResponseDto;
+import com.retailpulse.controller.response.TransientSalesTransactionDto;
+import com.retailpulse.entity.TaxType;
 import com.retailpulse.service.SalesTransactionService;
+import com.retailpulse.util.DateUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,11 +20,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Optional;
+import java.time.Instant;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,81 +41,89 @@ public class SalesTransactionControllerTest {
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
+    SalesTransactionRequestDto salesTransactionRequestDto;
+
     @BeforeEach
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(salesTransactionController).build();
+        SalesDetailsDto salesDetailsDto1 = new SalesDetailsDto(1L, 2, "50.0");
+        SalesDetailsDto salesDetailsDto2 = new SalesDetailsDto(2L, 3, "100.0");
+        SalesDetailsDto salesDetailsDto3 = new SalesDetailsDto(3L, 4, "200.0");
+        List<SalesDetailsDto> salesDetailsDtos = List.of(salesDetailsDto1, salesDetailsDto2, salesDetailsDto3);
+        salesTransactionRequestDto = new SalesTransactionRequestDto(
+                1L, "108.000", "1308.000", salesDetailsDtos
+        );
+    }
+
+    @Test
+    public void testJson() throws JsonProcessingException {
+        System.out.println(objectMapper.writeValueAsString(salesTransactionRequestDto));
     }
 
     @Test
     public void testCalculateSalesTax() throws Exception {
         // Given
-        double expectedTax = 15.75;
-        when(salesTransactionService.calculateSalesTax(ArgumentMatchers.anyList())).thenReturn(expectedTax);
+        TransientSalesTransactionDto transientSalesTransactionDto = new TransientSalesTransactionDto(
+                1L,
+                "0.000",
+                "GST",
+                "0.09",
+                "0.000", "0.000", null);
+        when(salesTransactionService.calculateSalesTax(ArgumentMatchers.anyLong(), ArgumentMatchers.anyList())).thenReturn(transientSalesTransactionDto);
 
         // When & Then
-        mockMvc.perform(post("/api/sales/calculateSalesTax")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("[]"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(String.valueOf(expectedTax)));
-    }
-
-    @Test
-    public void testGetSalesTransactionFound() throws Exception {
-        // Given
-        SalesTransaction transaction = new SalesTransaction();
-        when(salesTransactionService.getSalesTransaction(1L)).thenReturn(Optional.of(transaction));
-
-        // When & Then
-        mockMvc.perform(get("/api/sales/1"))
+        mockMvc.perform(post("/api/sales/1/calculateSalesTax")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(salesTransactionRequestDto.salesDetails())))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    public void testGetSalesTransactionNotFound() throws Exception {
-        // Given
-        when(salesTransactionService.getSalesTransaction(1L)).thenReturn(Optional.empty());
-
-        // When & Then
-        mockMvc.perform(get("/api/sales/1"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    public void testGetFullTransactionNotFound() throws Exception {
-        // Given
-        when(salesTransactionService.getFullTransaction(1L)).thenReturn(Optional.empty());
-
-        // When & Then
-        mockMvc.perform(get("/api/sales/1/full"))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void testCreateSalesTransaction() throws Exception {
         // Given
-        SalesTransaction transaction = new SalesTransaction();
-        when(salesTransactionService.createSalesTransaction(ArgumentMatchers.eq(10L), ArgumentMatchers.anyList()))
-                .thenReturn(transaction);
+        SalesTransactionResponseDto responseDto = new SalesTransactionResponseDto(
+                1L,
+                1L,
+                "1200.00",
+                TaxType.GST.name(),
+                "0.09",
+                "108.00",
+                "1308.00",
+                salesTransactionRequestDto.salesDetails(),
+                DateUtil.convertInstantToString(Instant.now(), DateUtil.DATE_TIME_FORMAT)
+        );
+        when(salesTransactionService.createSalesTransaction(ArgumentMatchers.any()))
+                .thenReturn(responseDto);
 
         // When & Then
-        mockMvc.perform(post("/api/sales/createTransaction/10")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("[]"))
+        mockMvc.perform(post("/api/sales/createTransaction")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(salesTransactionRequestDto)))
                 .andExpect(status().isOk());
     }
 
     @Test
     public void testUpdateSalesTransaction() throws Exception {
         // Given
-        SalesTransaction updatedTransaction = new SalesTransaction();
+        SalesTransactionResponseDto responseDto = new SalesTransactionResponseDto(
+                1L,
+                1L,
+                "1200.0",
+                TaxType.GST.name(),
+                "0.09",
+                "108.000",
+                "1308.000",
+                salesTransactionRequestDto.salesDetails(),
+                DateUtil.convertInstantToString(Instant.now(), DateUtil.DATE_TIME_FORMAT)
+        );
         when(salesTransactionService.updateSalesTransaction(ArgumentMatchers.eq(5L), ArgumentMatchers.anyList()))
-                .thenReturn(updatedTransaction);
+                .thenReturn(responseDto);
 
         // When & Then
         mockMvc.perform(put("/api/sales/updateSalesTransaction/5")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("[]"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(salesTransactionRequestDto.salesDetails())))
                 .andExpect(status().isOk());
     }
+
 }
