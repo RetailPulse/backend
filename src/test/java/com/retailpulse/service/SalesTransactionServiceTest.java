@@ -3,7 +3,7 @@ package com.retailpulse.service;
 import com.retailpulse.controller.request.SalesDetailsDto;
 import com.retailpulse.controller.request.SalesTransactionRequestDto;
 import com.retailpulse.controller.response.SalesTransactionResponseDto;
-import com.retailpulse.controller.response.TransientSalesTransactionDto;
+import com.retailpulse.controller.response.TaxResultDto;
 import com.retailpulse.entity.SalesDetails;
 import com.retailpulse.entity.SalesTax;
 import com.retailpulse.entity.SalesTransaction;
@@ -109,13 +109,13 @@ public class SalesTransactionServiceTest {
     public void testCalculateSalesTax() {
         when(salesTaxRepository.save(any(SalesTax.class))).thenReturn(dummySalesTax);
 
-        TransientSalesTransactionDto transientSalesTransactionDto = salesTransactionService.calculateSalesTax(1L, salesDetailsDtos);
+        TaxResultDto taxResultDto = salesTransactionService.calculateSalesTax(salesDetailsDtos);
 
-        assertEquals("GST", transientSalesTransactionDto.taxType());
-        assertEquals("0.09", transientSalesTransactionDto.taxRate());
-        assertEquals("1200.00", transientSalesTransactionDto.subTotalAmount());
-        assertEquals("108.00", transientSalesTransactionDto.taxAmount());
-        assertEquals("1308.00", transientSalesTransactionDto.totalAmount());
+        assertEquals("GST", taxResultDto.taxType());
+        assertEquals("0.09", taxResultDto.taxRate());
+        assertEquals("1200.00", taxResultDto.subTotalAmount());
+        assertEquals("108.00", taxResultDto.taxAmount());
+        assertEquals("1308.00", taxResultDto.totalAmount());
     }
 
     private <T, V> void setPrivateField(T targetObject, String fieldName, V value) {

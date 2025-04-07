@@ -1,11 +1,10 @@
 package com.retailpulse.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.retailpulse.controller.request.SalesDetailsDto;
 import com.retailpulse.controller.request.SalesTransactionRequestDto;
 import com.retailpulse.controller.response.SalesTransactionResponseDto;
-import com.retailpulse.controller.response.TransientSalesTransactionDto;
+import com.retailpulse.controller.response.TaxResultDto;
 import com.retailpulse.entity.TaxType;
 import com.retailpulse.service.SalesTransactionService;
 import com.retailpulse.util.DateUtil;
@@ -56,23 +55,18 @@ public class SalesTransactionControllerTest {
     }
 
     @Test
-    public void testJson() throws JsonProcessingException {
-        System.out.println(objectMapper.writeValueAsString(salesTransactionRequestDto));
-    }
-
-    @Test
     public void testCalculateSalesTax() throws Exception {
         // Given
-        TransientSalesTransactionDto transientSalesTransactionDto = new TransientSalesTransactionDto(
-                1L,
-                "0.000",
+        TaxResultDto taxResultDto = new TaxResultDto(
+                "1200.00",
                 "GST",
                 "0.09",
-                "0.000", "0.000", null);
-        when(salesTransactionService.calculateSalesTax(ArgumentMatchers.anyLong(), ArgumentMatchers.anyList())).thenReturn(transientSalesTransactionDto);
+                "108.00",
+                "1308.00", salesTransactionRequestDto.salesDetails());
+        when(salesTransactionService.calculateSalesTax(ArgumentMatchers.anyList())).thenReturn(taxResultDto);
 
         // When & Then
-        mockMvc.perform(post("/api/sales/1/calculateSalesTax")
+        mockMvc.perform(post("/api/sales/calculateSalesTax")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(salesTransactionRequestDto.salesDetails())))
                 .andExpect(status().isOk());

@@ -4,6 +4,7 @@ import com.retailpulse.controller.request.SalesDetailsDto;
 import com.retailpulse.controller.request.SalesTransactionRequestDto;
 import com.retailpulse.controller.request.SuspendedTransactionDto;
 import com.retailpulse.controller.response.SalesTransactionResponseDto;
+import com.retailpulse.controller.response.TaxResultDto;
 import com.retailpulse.controller.response.TransientSalesTransactionDto;
 import com.retailpulse.entity.*;
 import com.retailpulse.exception.ErrorCodes;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SalesTransactionService {
@@ -37,7 +39,7 @@ public class SalesTransactionService {
     }
 
 
-    public TransientSalesTransactionDto calculateSalesTax(Long businessEntityId, List<SalesDetailsDto> salesDetailsDtos) {
+    public TaxResultDto calculateSalesTax(List<SalesDetailsDto> salesDetailsDtos) {
         BigDecimal subtotal = salesDetailsDtos.stream()
                 .map(salesDetailsDto -> new BigDecimal(salesDetailsDto.salesPricePerUnit()).multiply(new BigDecimal(salesDetailsDto.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -51,8 +53,7 @@ public class SalesTransactionService {
 
         BigDecimal taxAmount = subtotal.multiply(salesTax.getTaxRate()).setScale(2, RoundingMode.HALF_UP);
 
-        return new TransientSalesTransactionDto(businessEntityId,
-                subtotal.toString(),
+        return new TaxResultDto(subtotal.toString(),
                 salesTax.getTaxType().name(),
                 salesTax.getTaxRate().toString(),
                 taxAmount.toString(),
@@ -152,7 +153,7 @@ public class SalesTransactionService {
      *
      * @param suspendedTransactionDto the DTO containing the details of the suspended transaction
      */
-    public void suspendTransaction(SuspendedTransactionDto suspendedTransactionDto) {
+    public List<TransientSalesTransactionDto> suspendTransaction(SuspendedTransactionDto suspendedTransactionDto) {
         SalesTax salesTax = salesTaxRepository.findSalesTaxByTaxType(TaxType.GST)
                 .orElseGet(() -> {
                     SalesTax newSalesTax = new SalesTax(TaxType.GST, new BigDecimal("0.09"));
@@ -167,33 +168,52 @@ public class SalesTransactionService {
 
         salesDetails.forEach(salesTransaction::addSalesDetails);
 
-        SalesTransactionMemento memento = salesTransaction.saveToMemento();
+        SalesTransactionMemento salesTransactionMemento = salesTransaction.saveToMemento();
 
-        salesTransactionHistory.suspendTransaction(suspendedTransactionDto.businessEntityId(), memento);
-
-    }
-
-    /**
-     * Retrieves suspended transactions for a given business entity.
-     *
-     * @param businessEntityId the ID of the business entity
-     * @return a list of suspended transactions
-     */
-    public List<TransientSalesTransactionDto> getSuspendedTransactions(Long businessEntityId) {
-
-        List<SalesTransactionMemento> suspendedTransactions = salesTransactionHistory.getSuspendedTransactions(businessEntityId);
+        List<Map<String, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.suspendTransaction(suspendedTransactionDto.businessEntityId(), salesTransactionMemento);
 
         // Map the suspended transactions to DTOs
         return suspendedTransactions.stream()
-                .map(memento -> new TransientSalesTransactionDto(
-                        memento.businessEntityId(),
-                        memento.subTotal(),
-                        memento.taxType(),
-                        memento.taxRate(),
-                        memento.taxAmount(),
-                        memento.totalAmount(),
-                        memento.salesDetails()
-                ))
+                .map(transactionMap -> {
+                    Map.Entry<String, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
+                    SalesTransactionMemento memento = entry.getValue();
+
+                    return new TransientSalesTransactionDto(
+                            memento.transactionId(),
+                            memento.businessEntityId(),
+                            memento.subTotal(),
+                            memento.taxType(),
+                            memento.taxRate(),
+                            memento.taxAmount(),
+                            memento.totalAmount(),
+                            memento.salesDetails(),
+                            memento.transactionDateTime()
+                    );
+                })
+                .toList();
+    }
+
+    public List<TransientSalesTransactionDto> deleteSuspendedTransaction(Long businessEntityId, String transactionId) {
+        List<Map<String, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.deleteSuspendedTransaction(businessEntityId, transactionId);
+
+        // Map the suspended transactions to DTOs
+        return suspendedTransactions.stream()
+                .map(transactionMap -> {
+                    Map.Entry<String, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
+                    SalesTransactionMemento memento = entry.getValue();
+
+                    return new TransientSalesTransactionDto(
+                            memento.transactionId(),
+                            memento.businessEntityId(),
+                            memento.subTotal(),
+                            memento.taxType(),
+                            memento.taxRate(),
+                            memento.taxAmount(),
+                            memento.totalAmount(),
+                            memento.salesDetails(),
+                            memento.transactionDateTime()
+                    );
+                })
                 .toList();
     }
 

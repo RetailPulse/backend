@@ -4,15 +4,12 @@ import com.retailpulse.controller.request.SalesDetailsDto;
 
 import java.util.List;
 
-public record TransientSalesTransactionDto(
-        String transactionId,
-        long businessEntityId,
+public record TaxResultDto(
         String subTotalAmount,
         String taxType,
         String taxRate,
         String taxAmount,
         String totalAmount,
-        List<SalesDetailsDto> salesDetails,
-        String transactionDateTime
+        List<SalesDetailsDto> salesDetails
 ) {
 }

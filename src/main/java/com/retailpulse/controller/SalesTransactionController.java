@@ -4,6 +4,7 @@ import com.retailpulse.controller.request.SalesDetailsDto;
 import com.retailpulse.controller.request.SalesTransactionRequestDto;
 import com.retailpulse.controller.request.SuspendedTransactionDto;
 import com.retailpulse.controller.response.SalesTransactionResponseDto;
+import com.retailpulse.controller.response.TaxResultDto;
 import com.retailpulse.controller.response.TransientSalesTransactionDto;
 import com.retailpulse.service.SalesTransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +22,10 @@ public class SalesTransactionController {
     private SalesTransactionService salesTransactionService;
 
 
-    @PostMapping("/{businessEntityId}/calculateSalesTax")
-    public ResponseEntity<TransientSalesTransactionDto> calculateSalesTax(@PathVariable Long businessEntityId,
-                                                                          @RequestBody List<SalesDetailsDto> salesDetailsDtos) {
-        TransientSalesTransactionDto transientSalesTransactionDto = salesTransactionService.calculateSalesTax(businessEntityId, salesDetailsDtos);
-        return ResponseEntity.ok(transientSalesTransactionDto);
+    @PostMapping("/calculateSalesTax")
+    public ResponseEntity<TaxResultDto> calculateSalesTax(@RequestBody List<SalesDetailsDto> salesDetailsDtos) {
+        TaxResultDto taxResultDto = salesTransactionService.calculateSalesTax(salesDetailsDtos);
+        return ResponseEntity.ok(taxResultDto);
     }
 
     /**
@@ -56,14 +56,14 @@ public class SalesTransactionController {
     }
 
     @PostMapping("/suspend")
-    public ResponseEntity<String> suspendTransaction(@RequestBody SuspendedTransactionDto suspendedTransactionDto) {
-        salesTransactionService.suspendTransaction(suspendedTransactionDto);
-        return ResponseEntity.ok("Transaction suspended successfully.");
+    public ResponseEntity<List<TransientSalesTransactionDto>> suspendTransaction(@RequestBody SuspendedTransactionDto suspendedTransactionDto) {
+        List<TransientSalesTransactionDto> transactionHistory = salesTransactionService.suspendTransaction(suspendedTransactionDto);
+        return ResponseEntity.ok(transactionHistory);
     }
 
-    @PostMapping("/{businessEntityId}/suspended-transactions")
-    public ResponseEntity<List<TransientSalesTransactionDto>> getSuspendedTransactions(@PathVariable Long businessEntityId) {
-        List<TransientSalesTransactionDto> transactionHistory = salesTransactionService.getSuspendedTransactions(businessEntityId);
+    @DeleteMapping("/{businessEntityId}/suspended-transactions/{transactionId}")
+    public ResponseEntity<List<TransientSalesTransactionDto>> deleteSuspendedTransaction(@PathVariable Long businessEntityId, @PathVariable String transactionId) {
+        List<TransientSalesTransactionDto> transactionHistory = salesTransactionService.deleteSuspendedTransaction(businessEntityId, transactionId);
         return ResponseEntity.ok(transactionHistory);
     }
 
