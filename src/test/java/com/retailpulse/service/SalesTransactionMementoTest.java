@@ -51,15 +51,20 @@ public class SalesTransactionMementoTest {
 
         salesTransactionService.suspendTransaction(suspendedTransactionDto1);
         salesTransactionService.suspendTransaction(suspendedTransactionDto2);
-        salesTransactionService.suspendTransaction(suspendedTransactionDto3);
-
-        List<TransientSalesTransactionDto> suspendedTransactions = salesTransactionService.getSuspendedTransactions(1L);
+        List<TransientSalesTransactionDto> suspendedTransactions = salesTransactionService.suspendTransaction(suspendedTransactionDto3);
 
         assertEquals(3, suspendedTransactions.size());
         assertEquals("1200.00", suspendedTransactions.get(0).subTotalAmount());
         assertEquals("108.00", suspendedTransactions.get(0).taxAmount());
         assertEquals("1308.00", suspendedTransactions.get(0).totalAmount());
-    }
 
+        suspendedTransactions = salesTransactionService.deleteSuspendedTransaction(1L, suspendedTransactions.get(0).transactionId());
+
+        assertEquals(2, suspendedTransactions.size());
+        assertEquals("400.00", suspendedTransactions.get(0).subTotalAmount());
+        assertEquals("36.00", suspendedTransactions.get(0).taxAmount());
+        assertEquals("436.00", suspendedTransactions.get(0).totalAmount());
+
+    }
 
 }

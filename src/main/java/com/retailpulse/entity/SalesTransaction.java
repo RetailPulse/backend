@@ -1,6 +1,7 @@
 package com.retailpulse.entity;
 
 import com.retailpulse.controller.request.SalesDetailsDto;
+import com.retailpulse.util.DateUtil;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -64,6 +66,7 @@ public class SalesTransaction {
 
     public SalesTransactionMemento saveToMemento() {
         return new SalesTransactionMemento(
+                UUID.randomUUID().toString(),
                 this.businessEntityId,
                 this.subtotal.toPlainString(),
                 this.salesTax.getTaxType().name(),
@@ -76,7 +79,8 @@ public class SalesTransaction {
                                 salesDetails.getQuantity(),
                                 salesDetails.getSalesPricePerUnit().toString()
                         )
-                ).toList()
+                ).toList(),
+                DateUtil.convertInstantToString(Instant.now(), DateUtil.DATE_TIME_FORMAT)
         );
     }
 
