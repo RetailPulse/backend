@@ -12,17 +12,17 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class SalesTransactionHistory {
 
-    private final Map<Long, List<Map<String, SalesTransactionMemento>>> suspendedTransactions = new ConcurrentHashMap<>();
+    private final Map<Long, List<Map<Long, SalesTransactionMemento>>> suspendedTransactions = new ConcurrentHashMap<>();
 
-    public List<Map<String, SalesTransactionMemento>> suspendTransaction(Long businessEntityId, SalesTransactionMemento salesTransactionMemento) {
+    public List<Map<Long, SalesTransactionMemento>> suspendTransaction(Long businessEntityId, SalesTransactionMemento salesTransactionMemento) {
         if (!suspendedTransactions.containsKey(businessEntityId)) {
-            List<Map<String, SalesTransactionMemento>> suspendedTransactionsList = new ArrayList<>();
-            Map<String, SalesTransactionMemento> suspendedTransaction = new HashMap<>();
+            List<Map<Long, SalesTransactionMemento>> suspendedTransactionsList = new ArrayList<>();
+            Map<Long, SalesTransactionMemento> suspendedTransaction = new HashMap<>();
             suspendedTransaction.put(salesTransactionMemento.transactionId(), salesTransactionMemento);
             suspendedTransactionsList.add(suspendedTransaction);
             suspendedTransactions.put(businessEntityId, suspendedTransactionsList);
         } else {
-            Map<String, SalesTransactionMemento> suspendedTransaction = new HashMap<>();
+            Map<Long, SalesTransactionMemento> suspendedTransaction = new HashMap<>();
             suspendedTransaction.put(salesTransactionMemento.transactionId(), salesTransactionMemento);
             suspendedTransactions.get(businessEntityId).add(suspendedTransaction);
         }
@@ -30,9 +30,9 @@ public class SalesTransactionHistory {
         return suspendedTransactions.get(businessEntityId);
     }
 
-    public List<Map<String, SalesTransactionMemento>> deleteSuspendedTransaction(Long businessEntityId, String transactionId) {
+    public List<Map<Long, SalesTransactionMemento>> deleteSuspendedTransaction(Long businessEntityId, Long transactionId) {
         if (suspendedTransactions.containsKey(businessEntityId)) {
-            List<Map<String, SalesTransactionMemento>> suspendedTransactionsList = suspendedTransactions.get(businessEntityId);
+            List<Map<Long, SalesTransactionMemento>> suspendedTransactionsList = suspendedTransactions.get(businessEntityId);
             suspendedTransactionsList.removeIf(transaction -> transaction.containsKey(transactionId));
         }
 

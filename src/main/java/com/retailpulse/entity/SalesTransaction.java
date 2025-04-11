@@ -66,7 +66,7 @@ public class SalesTransaction {
 
     public SalesTransactionMemento saveToMemento() {
         return new SalesTransactionMemento(
-                UUID.randomUUID().toString(),
+                System.currentTimeMillis(),
                 this.businessEntityId,
                 this.subtotal.toPlainString(),
                 this.salesTax.getTaxType().name(),
@@ -82,6 +82,27 @@ public class SalesTransaction {
                 ).toList(),
                 DateUtil.convertInstantToString(Instant.now(), DateUtil.DATE_TIME_FORMAT)
         );
+    }
+
+    public SalesTransaction restoreFromMemento(SalesTransactionMemento memento) {
+        this.id = memento.transactionId();
+        this.businessEntityId = memento.businessEntityId();
+        this.salesTax = new SalesTax(TaxType.valueOf(memento.taxType()), new BigDecimal(memento.taxRate()));
+        this.subtotal = new BigDecimal(memento.subTotal());
+        this.salesTaxAmount = new BigDecimal(memento.taxAmount());
+        this.total = new BigDecimal(memento.totalAmount());
+        this.transactionDate = DateUtil.convertStringToInstant(memento.transactionDateTime(), DateUtil.DATE_TIME_FORMAT);
+
+        for (SalesDetailsDto salesDetailsDto : memento.salesDetails()) {
+            SalesDetails salesDetails = new SalesDetails(
+                    salesDetailsDto.productId(),
+                    salesDetailsDto.quantity(),
+                    new BigDecimal(salesDetailsDto.salesPricePerUnit())
+            );
+            this.addSalesDetails(salesDetails);
+        }
+
+        return this;
     }
 
     private void recalculateTotal() {

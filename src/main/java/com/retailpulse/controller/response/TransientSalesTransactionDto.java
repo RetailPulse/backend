@@ -5,7 +5,7 @@ import com.retailpulse.controller.request.SalesDetailsDto;
 import java.util.List;
 
 public record TransientSalesTransactionDto(
-        String transactionId,
+        long transactionId,
         long businessEntityId,
         String subTotalAmount,
         String taxType,
