@@ -62,7 +62,7 @@ public class SalesTransactionController {
     }
 
     @DeleteMapping("/{businessEntityId}/suspended-transactions/{transactionId}")
-    public ResponseEntity<List<TransientSalesTransactionDto>> deleteSuspendedTransaction(@PathVariable Long businessEntityId, @PathVariable String transactionId) {
+    public ResponseEntity<List<TransientSalesTransactionDto>> deleteSuspendedTransaction(@PathVariable Long businessEntityId, @PathVariable Long transactionId) {
         List<TransientSalesTransactionDto> transactionHistory = salesTransactionService.deleteSuspendedTransaction(businessEntityId, transactionId);
         return ResponseEntity.ok(transactionHistory);
     }

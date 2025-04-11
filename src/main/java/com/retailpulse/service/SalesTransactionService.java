@@ -93,17 +93,7 @@ public class SalesTransactionService {
         transaction = salesTransactionRepository.save(transaction);
 
         // map salesTransaction to salesTransactionResponseDto
-        return new SalesTransactionResponseDto(
-                transaction.getId(),
-                transaction.getBusinessEntityId(),
-                transaction.getSubtotal().toString(),
-                transaction.getSalesTax().getTaxType().name(),
-                transaction.getSalesTax().getTaxRate().toString(),
-                transaction.getSalesTaxAmount().toString(),
-                transaction.getTotal().toString(),
-                requestDto.salesDetails(),
-                DateUtil.convertInstantToString(transaction.getTransactionDate(), DateUtil.DATE_TIME_FORMAT)
-        );
+        return mapToResponseDto(transaction);
 
     }
 
@@ -134,17 +124,7 @@ public class SalesTransactionService {
 
         salesTransactionRepository.saveAndFlush(existingTransaction);
 
-        return new SalesTransactionResponseDto(
-                existingTransaction.getId(),
-                existingTransaction.getBusinessEntityId(),
-                existingTransaction.getSubtotal().toString(),
-                existingTransaction.getSalesTax().getTaxType().name(),
-                existingTransaction.getSalesTax().getTaxRate().toString(),
-                existingTransaction.getSalesTaxAmount().toString(),
-                existingTransaction.getTotal().toString(),
-                newSalesDetailsDtos,
-                DateUtil.convertInstantToString(existingTransaction.getTransactionDate(), DateUtil.DATE_TIME_FORMAT)
-        );
+        return mapToResponseDto(existingTransaction);
 
     }
 
@@ -170,51 +150,78 @@ public class SalesTransactionService {
 
         SalesTransactionMemento salesTransactionMemento = salesTransaction.saveToMemento();
 
-        List<Map<String, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.suspendTransaction(suspendedTransactionDto.businessEntityId(), salesTransactionMemento);
+        List<Map<Long, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.suspendTransaction(suspendedTransactionDto.businessEntityId(), salesTransactionMemento);
 
         // Map the suspended transactions to DTOs
         return suspendedTransactions.stream()
                 .map(transactionMap -> {
-                    Map.Entry<String, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
+                    Map.Entry<Long, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
                     SalesTransactionMemento memento = entry.getValue();
 
-                    return new TransientSalesTransactionDto(
-                            memento.transactionId(),
-                            memento.businessEntityId(),
-                            memento.subTotal(),
-                            memento.taxType(),
-                            memento.taxRate(),
-                            memento.taxAmount(),
-                            memento.totalAmount(),
-                            memento.salesDetails(),
-                            memento.transactionDateTime()
-                    );
+                    SalesTransaction transaction = new SalesTransaction(memento.businessEntityId(), salesTax);
+                    transaction.restoreFromMemento(memento);
+
+                    return mapToTransientDto(transaction);
                 })
                 .toList();
     }
 
-    public List<TransientSalesTransactionDto> deleteSuspendedTransaction(Long businessEntityId, String transactionId) {
-        List<Map<String, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.deleteSuspendedTransaction(businessEntityId, transactionId);
+    public List<TransientSalesTransactionDto> deleteSuspendedTransaction(Long businessEntityId, Long transactionId) {
+        List<Map<Long, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.deleteSuspendedTransaction(businessEntityId, transactionId);
 
         // Map the suspended transactions to DTOs
         return suspendedTransactions.stream()
                 .map(transactionMap -> {
-                    Map.Entry<String, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
+                    Map.Entry<Long, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
                     SalesTransactionMemento memento = entry.getValue();
 
-                    return new TransientSalesTransactionDto(
-                            memento.transactionId(),
-                            memento.businessEntityId(),
-                            memento.subTotal(),
-                            memento.taxType(),
-                            memento.taxRate(),
-                            memento.taxAmount(),
-                            memento.totalAmount(),
-                            memento.salesDetails(),
-                            memento.transactionDateTime()
-                    );
+                    SalesTransaction transaction = new SalesTransaction(memento.businessEntityId(),
+                            new SalesTax(TaxType.valueOf(memento.taxType()), new BigDecimal(memento.taxRate())));
+                    transaction.restoreFromMemento(memento);
+
+                    return mapToTransientDto(transaction);
                 })
                 .toList();
+    }
+
+    private TransientSalesTransactionDto mapToTransientDto(SalesTransaction salesTransaction) {
+        return new TransientSalesTransactionDto(
+                salesTransaction.getId(),
+                salesTransaction.getBusinessEntityId(),
+                salesTransaction.getSubtotal().toString(),
+                salesTransaction.getSalesTax().getTaxType().name(),
+                salesTransaction.getSalesTax().getTaxRate().toString(),
+                salesTransaction.getSalesTaxAmount().toString(),
+                salesTransaction.getTotal().toString(),
+                salesTransaction.getSalesDetailEntities().stream()
+                        .map(salesDetails -> new SalesDetailsDto(
+                                salesDetails.getProductId(),
+                                salesDetails.getQuantity(),
+                                salesDetails.getSalesPricePerUnit().toString()
+                        ))
+                        .toList(),
+                DateUtil.convertInstantToString(salesTransaction.getTransactionDate(), DateUtil.DATE_TIME_FORMAT)
+        );
+    }
+
+    private SalesTransactionResponseDto mapToResponseDto(SalesTransaction salesTransaction) {
+        return new SalesTransactionResponseDto(
+                salesTransaction.getId(),
+                salesTransaction.getBusinessEntityId(),
+                salesTransaction.getSubtotal().toString(),
+                salesTransaction.getSalesTax().getTaxType().name(),
+                salesTransaction.getSalesTax().getTaxRate().toString(),
+                salesTransaction.getSalesTaxAmount().toString(),
+                salesTransaction.getTotal().toString(),
+                salesTransaction.getSalesDetailEntities().stream()
+                        .map(salesDetails -> new SalesDetailsDto(
+                                salesDetails.getProductId(),
+                                salesDetails.getQuantity(),
+                                salesDetails.getSalesPricePerUnit().toString()
+                        ))
+                        .toList(),
+                DateUtil.convertInstantToString(salesTransaction.getTransactionDate(), DateUtil.DATE_TIME_FORMAT)
+        );
     }
 
 }

@@ -5,7 +5,7 @@ import com.retailpulse.controller.request.SalesDetailsDto;
 import java.util.List;
 
 public record SalesTransactionMemento(
-        String transactionId,
+        Long transactionId,
         Long businessEntityId,
         String subTotal,
         String taxType,
