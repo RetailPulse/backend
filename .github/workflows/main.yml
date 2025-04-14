@@ -6,16 +6,18 @@ env:
   MAVEN_CACHE: 'maven'        # Centralized cache type
 
 on:
-  push:
-    branches:
-      - "main" # Trigger on pushes to the "main" branch
-  pull_request:
-    branches:
-      - "main" # Trigger on pull requests targeting the "main" branch
-    types:
-      - opened
-      - synchronize
-      - reopened
+  workflow_dispatch:
+
+  # push:
+  #   branches:
+  #     - "main" # Trigger on pushes to the "main" branch
+  # pull_request:
+  #   branches:
+  #     - "main" # Trigger on pull requests targeting the "main" branch
+  #   types:
+  #     - opened
+  #     - synchronize
+  #     - reopened
 
 jobs:
   backend-unit-test:
