@@ -1,19 +1,18 @@
 package com.retailpulse.controller;
 
 import com.retailpulse.DTO.InventoryTransactionDto;
-import com.retailpulse.DTO.InventoryTransactionReportDto;
 import com.retailpulse.controller.exception.ApplicationException;
-import com.retailpulse.entity.InventoryTransaction;
 import com.retailpulse.service.InventoryTransactionReportService;
 import com.retailpulse.util.DateUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reports/inventory-transactions")
 public class InventoryTransactionReportController {
-    private static final  Logger logger = LoggerFactory.getLogger(InventoryTransactionReportController.class);
+    private static final Logger logger = LoggerFactory.getLogger(InventoryTransactionReportController.class);
     private static final String INVALID_DATE_RANGE = "INVALID_DATE_RANGE";
 
     private final InventoryTransactionReportService inventoryTransactionReportService;
@@ -47,8 +46,8 @@ public class InventoryTransactionReportController {
         Instant startInstant;
         Instant endInstant;
         try {
-             startInstant = DateUtil.convertStringToInstant(startDateTime, dateTimeFormat);
-             endInstant = DateUtil.convertStringToInstant(endDateTime, dateTimeFormat);
+            startInstant = DateUtil.convertStringToInstant(startDateTime, dateTimeFormat);
+            endInstant = DateUtil.convertStringToInstant(endDateTime, dateTimeFormat);
         } catch (IllegalArgumentException | DateTimeParseException e) {
             throw new ApplicationException(INVALID_DATE_RANGE, "Invalid date time format");
         }
@@ -63,4 +62,59 @@ public class InventoryTransactionReportController {
         return inventoryTransactions;
     }
 
+
+    @GetMapping("/pdf/all")
+    public void exportToPdf(HttpServletResponse response, @RequestParam String startDateTime, @RequestParam String endDateTime, @RequestParam String dateTimeFormat) throws IOException {
+
+        if (startDateTime == null || startDateTime.isBlank()) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+        }
+
+        if (endDateTime == null || endDateTime.isBlank()) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+        }
+
+        Instant startInstant;
+        Instant endInstant;
+        try {
+            startInstant = DateUtil.convertStringToInstant(startDateTime, dateTimeFormat);
+            endInstant = DateUtil.convertStringToInstant(endDateTime, dateTimeFormat);
+        } catch (IllegalArgumentException | DateTimeParseException e) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Invalid date time format");
+        }
+
+        // Validate that startInstant is before endInstant
+        if (startInstant.isAfter(endInstant)) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+        }
+
+        this.inventoryTransactionReportService.exportToPdf(response, startInstant, endInstant);
+    }
+
+    @GetMapping("/excel/all")
+    public void exportToExcel(HttpServletResponse response, @RequestParam String startDateTime, @RequestParam String endDateTime, @RequestParam String dateTimeFormat) throws IOException {
+        if (startDateTime == null || startDateTime.isBlank()) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+        }
+
+        if (endDateTime == null || endDateTime.isBlank()) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+        }
+
+        Instant startInstant;
+        Instant endInstant;
+        try {
+            startInstant = DateUtil.convertStringToInstant(startDateTime, dateTimeFormat);
+            endInstant = DateUtil.convertStringToInstant(endDateTime, dateTimeFormat);
+        } catch (IllegalArgumentException | DateTimeParseException e) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Invalid date time format");
+        }
+
+        // Validate that startInstant is before endInstant
+        if (startInstant.isAfter(endInstant)) {
+            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+        }
+
+        this.inventoryTransactionReportService.exportToExcel(response, startInstant, endInstant);
+    }
 }
