@@ -150,12 +150,11 @@ public class SalesTransactionService {
 
         SalesTransactionMemento salesTransactionMemento = salesTransaction.saveToMemento();
 
-        List<Map<Long, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.suspendTransaction(suspendedTransactionDto.businessEntityId(), salesTransactionMemento);
+        Map<Long, SalesTransactionMemento> suspendedTransactions = salesTransactionHistory.addTransaction(suspendedTransactionDto.businessEntityId(), salesTransactionMemento);
 
         // Map the suspended transactions to DTOs
-        return suspendedTransactions.stream()
-                .map(transactionMap -> {
-                    Map.Entry<Long, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
+        return suspendedTransactions.entrySet().stream()
+                .map(entry -> {
                     SalesTransactionMemento memento = entry.getValue();
 
                     SalesTransaction transaction = new SalesTransaction(memento.businessEntityId(), salesTax);
@@ -164,19 +163,18 @@ public class SalesTransactionService {
                     return mapToTransientDto(transaction);
                 })
                 .toList();
+
     }
 
-    public List<TransientSalesTransactionDto> deleteSuspendedTransaction(Long businessEntityId, Long transactionId) {
-        List<Map<Long, SalesTransactionMemento>> suspendedTransactions = salesTransactionHistory.deleteSuspendedTransaction(businessEntityId, transactionId);
+    public List<TransientSalesTransactionDto> restoreTransaction(Long businessEntityId, Long transactionId) {
+        Map<Long, SalesTransactionMemento> suspendedTransactions = salesTransactionHistory.deleteTransaction(businessEntityId, transactionId);
 
         // Map the suspended transactions to DTOs
-        return suspendedTransactions.stream()
-                .map(transactionMap -> {
-                    Map.Entry<Long, SalesTransactionMemento> entry = transactionMap.entrySet().iterator().next();
+        return suspendedTransactions.entrySet().stream()
+                .map(entry -> {
                     SalesTransactionMemento memento = entry.getValue();
 
-                    SalesTransaction transaction = new SalesTransaction(memento.businessEntityId(),
-                            new SalesTax(TaxType.valueOf(memento.taxType()), new BigDecimal(memento.taxRate())));
+                    SalesTransaction transaction = new SalesTransaction(memento.businessEntityId(), new SalesTax(TaxType.valueOf(memento.taxType()), new BigDecimal(memento.taxRate())));
                     transaction.restoreFromMemento(memento);
 
                     return mapToTransientDto(transaction);
