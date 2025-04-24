@@ -4,6 +4,7 @@ import com.retailpulse.entity.SKUCounter;
 import com.retailpulse.repository.SKUCounterRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SKUGeneratorService {
@@ -13,6 +14,7 @@ public class SKUGeneratorService {
 
     private static  final String COUNTER_NAME = "product";
 
+    @Transactional
     public String generateSKU() {
         // Find or create a SKU counter
         SKUCounter skuCounter = skuCounterRepository.findByName(COUNTER_NAME)
