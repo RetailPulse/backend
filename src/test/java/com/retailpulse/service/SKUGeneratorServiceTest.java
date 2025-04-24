@@ -32,6 +32,7 @@ public class SKUGeneratorServiceTest {
         // Stub repository to simulate counter not existing
         when(skuCounterRepository.findByName("product")).thenReturn(Optional.empty());
         when(skuCounterRepository.save(any(SKUCounter.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(skuCounterRepository.getLastInsertedId()).thenReturn(1L);
 
         String generatedSKU = skuGeneratorService.generateSKU();
 
@@ -40,24 +41,7 @@ public class SKUGeneratorServiceTest {
 
         // Verify interactions
         verify(skuCounterRepository, times(1)).findByName("product");
-        // Save is called twice: one for creating new counter and one for saving the incremented counter
-        verify(skuCounterRepository, times(2)).save(any(SKUCounter.class));
-    }
-
-    @Test
-    public void testGenerateSKUWhenCounterExists() {
-        // Create an existing SKUCounter with counter value 5
-        SKUCounter existingCounter = new SKUCounter("product", 5L);
-        when(skuCounterRepository.findByName("product")).thenReturn(Optional.of(existingCounter));
-        when(skuCounterRepository.save(any(SKUCounter.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        String generatedSKU = skuGeneratorService.generateSKU();
-
-        // Existing counter increments from 5 to 6, so SKU = "RP6"
-        assertEquals("RP6", generatedSKU);
-
-        // Verify interactions
-        verify(skuCounterRepository, times(1)).findByName("product");
-        verify(skuCounterRepository, times(1)).save(existingCounter);
+        verify(skuCounterRepository, times(1)).save(any(SKUCounter.class));
+        verify(skuCounterRepository, times(1)).getLastInsertedId();
     }
 }

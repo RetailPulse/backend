@@ -23,13 +23,13 @@ public class SKUGeneratorService {
                     return skuCounterRepository.save(newCounter);
                 });
 
-        // Increment the counter
-        skuCounter.setCounter(skuCounter.getCounter() + 1);
+        // Atomically increment
+        skuCounterRepository.incrementAndStore(COUNTER_NAME);
 
-        // Save the updated counter
-        skuCounterRepository.save(skuCounter);
+        // Get the new incremented value
+        Long newCounter = skuCounterRepository.getLastInsertedId();
 
         // Return the SKU in the format "RP1", "RP2", "RP3", etc.
-        return "RP" + skuCounter.getCounter();
+        return "RP" + newCounter;
     }
 }
