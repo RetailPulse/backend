@@ -1,13 +1,16 @@
-package com.retailpulse.service;
+package com.retailpulse.service.report;
 
 import com.retailpulse.DTO.InventoryTransactionDto;
-import com.retailpulse.controller.exception.ApplicationException;
 import com.retailpulse.DTO.mapper.InventoryTransactionReportMapper;
+import com.retailpulse.controller.exception.ApplicationException;
 import com.retailpulse.repository.InventoryTransactionRepository;
+import com.retailpulse.service.dataExtractor.InventoryTransactionDataExtractor;
+import com.retailpulse.service.dataExtractor.TableDataExtractor;
+import com.retailpulse.service.exportReportHelper.ExcelReportExportService;
+import com.retailpulse.service.exportReportHelper.PdfReportExportService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -32,14 +35,19 @@ public class InventoryTransactionReportService {
                 .collect(Collectors.toList());
     }
 
-    // New method that uses the Template Method to export report
     public void exportReport(HttpServletResponse response, Instant start, Instant end, String format) throws IOException {
         List<InventoryTransactionDto> data = getInventoryTransactions(start, end);
+        String[] headers = new String[]{
+                "S/No.", "Transaction ID", "SKU", "Description", "Quantity", "Source", "Destination", "Transaction Date Time"
+        };
+        String title = "Inventory Transaction Report";
+
+        TableDataExtractor<InventoryTransactionDto> extractor = new InventoryTransactionDataExtractor();
         if ("pdf".equalsIgnoreCase(format)) {
-            PdfReportExportService exportService = new PdfReportExportService();
+            PdfReportExportService<InventoryTransactionDto> exportService = new PdfReportExportService<>(title, headers, extractor);
             exportService.exportReport(response, start, end, data);
         } else if ("excel".equalsIgnoreCase(format)) {
-            ExcelReportExportService exportService = new ExcelReportExportService();
+            ExcelReportExportService<InventoryTransactionDto> exportService = new ExcelReportExportService<>(title, headers, extractor);
             exportService.exportReport(response, start, end, data);
         } else {
             throw new ApplicationException("INVALID_FORMAT", "Unsupported export format: " + format);
