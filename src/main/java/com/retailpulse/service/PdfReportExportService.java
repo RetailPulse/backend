@@ -77,7 +77,7 @@ public class PdfReportExportService extends AbstractReportExportService {
 
     @Override
     protected void writeTableHeader(HttpServletResponse response) throws IOException {
-        // Build the table header using the ReportAbstract’s template method logic
+        // Build the table header
         PdfPTable headerTable = new PdfPTable(headers.length);
         headerTable.setWidthPercentage(100);
         for (String header : headers) {
