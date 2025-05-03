@@ -11,13 +11,13 @@ on:
   # push:
   #   branches:
   #     - "main" # Trigger on pushes to the "main" branch
-  # pull_request:
-  #   branches:
-  #     - "main" # Trigger on pull requests targeting the "main" branch
-  #   types:
-  #     - opened
-  #     - synchronize
-  #     - reopened
+  pull_request:
+    branches:
+      - "main" # Trigger on pull requests targeting the "main" branch
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 jobs:
   backend-unit-test:
@@ -42,9 +42,18 @@ jobs:
 
     - name: Test Backend
       run: mvn --batch-mode test --file pom.xml
+
+    - name: Generate Coverage Report
+      run: mvn jacoco:report --file pom.xml
+
+    - name: Upload Code Coverage Report as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: target/site/jacoco/
   
   backend-sonarqube-scan:
-    name: Build and analyze
+    name: Backend SonarQube Scan
     needs: backend-unit-test
     runs-on: ubuntu-latest
     steps:
@@ -69,14 +78,8 @@ jobs:
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2      
-      - name: Build, Test, and Generate Code Coverage Report
-        run: mvn -B clean verify jacoco:report  
-      - name: Upload Code Coverage Report as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-coverage-report
-          path: target/site/jacoco/
+          restore-keys: ${{ runner.os }}-m2   
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
