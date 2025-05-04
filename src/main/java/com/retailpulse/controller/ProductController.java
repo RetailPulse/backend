@@ -43,7 +43,7 @@ public class ProductController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SKU cannot be null or empty");
         }
 
-        String strSku = sku.replace("[\n\r]", "_");
+        String strSku = sku.replaceAll("[\n\r]", "_");
         logger.info("Fetching product with sku: " + strSku);
         Product product = productService.getProductBySKU(strSku)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product not found with sku: " + strSku));
