@@ -16,9 +16,12 @@ import java.util.logging.Logger;
 public class ProductController {
 
     private static final Logger logger = Logger.getLogger(ProductController.class.getName());
+    private final ProductService productService;
 
     @Autowired
-    ProductService productService;
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {

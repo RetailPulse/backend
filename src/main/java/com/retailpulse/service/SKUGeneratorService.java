@@ -8,11 +8,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SKUGeneratorService {
+    private static final String COUNTER_NAME = "product";
+    private final SKUCounterRepository skuCounterRepository;
 
     @Autowired
-    private SKUCounterRepository skuCounterRepository;
-
-    private static  final String COUNTER_NAME = "product";
+    public SKUGeneratorService(SKUCounterRepository skuCounterRepository) {
+        this.skuCounterRepository = skuCounterRepository;
+    }
 
     @Transactional
     public String generateSKU() {

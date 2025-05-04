@@ -17,10 +17,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/sales")
 public class SalesTransactionController {
+    private final SalesTransactionService salesTransactionService;
 
     @Autowired
-    private SalesTransactionService salesTransactionService;
-
+    public SalesTransactionController(SalesTransactionService salesTransactionService) {
+        this.salesTransactionService = salesTransactionService;
+    }
 
     @PostMapping("/calculateSalesTax")
     public ResponseEntity<TaxResultDto> calculateSalesTax(@RequestBody List<SalesDetailsDto> salesDetailsDtos) {
