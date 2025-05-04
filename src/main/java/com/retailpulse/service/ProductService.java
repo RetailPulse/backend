@@ -14,6 +14,8 @@ import java.util.function.Consumer;
 @Service
 public class ProductService {
 
+    private static final String PRODUCT_NOT_FOUND_DESC = "Product not found with id: ";
+
     @Autowired
     private SKUGeneratorService skuGeneratorService;
 
@@ -48,7 +50,7 @@ public class ProductService {
 
     public Product updateProduct(Long id, Product productDetails) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND_DESC + id));
 
         if (!product.isActive()) {
             throw new RuntimeException("Cannot update a deleted product with id: " + id);
@@ -85,7 +87,7 @@ public class ProductService {
 
     public Product softDeleteProduct(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND_DESC + id));
 
         if (!product.isActive()) {
             throw new IllegalArgumentException("Product with id " + id + " is already deleted.");
@@ -100,7 +102,7 @@ public class ProductService {
 
     public Product reverseSoftDelete(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND_DESC + id));
 
         updateField(true, product::setActive);
 

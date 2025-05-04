@@ -49,7 +49,7 @@ public class PdfReportExportService<T> extends AbstractReportExportService<T> {
 
         // Use flexible title here
         Paragraph titleParagraph = new Paragraph(this.title, new Font(Font.HELVETICA, 16, Font.BOLD));
-        titleParagraph.setAlignment(Paragraph.ALIGN_CENTER);
+        titleParagraph.setAlignment(Element.ALIGN_CENTER);
         document.add(titleParagraph);
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
