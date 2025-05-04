@@ -16,15 +16,17 @@ public class ProductService {
 
     private static final String PRODUCT_NOT_FOUND_DESC = "Product not found with id: ";
 
-    @Autowired
-    private SKUGeneratorService skuGeneratorService;
+    private final SKUGeneratorService skuGeneratorService;
+    private final ProductRepository productRepository;
+    private final InventoryService inventoryService;
 
     @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private InventoryService inventoryService;
-
+    public ProductService(SKUGeneratorService skuGeneratorService, ProductRepository productRepository, InventoryService inventoryService) {
+        this.skuGeneratorService = skuGeneratorService;
+        this.productRepository = productRepository;
+        this.inventoryService = inventoryService;
+    }
+    
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }

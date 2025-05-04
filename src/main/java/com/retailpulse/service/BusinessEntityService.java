@@ -19,14 +19,16 @@ public class BusinessEntityService {
     private static final String BUSINESS_ENTITY_NOT_FOUND = "BUSINESS_ENTITY_NOT_FOUND";
     private static final String BUSINESS_ENTITY_DELETED = "BUSINESS_ENTITY_DELETED";
     private static final String HAS_PRODUCT_IN_INVENTORY = "HAS_PRODUCT_IN_INVENTORY";
-
     private static final String BUSINESS_ENTITY_NOT_FOUND_DESC = "Business Entity not found with id: ";
 
-    @Autowired
-    BusinessEntityRepository businessEntityRepository;
+    private final BusinessEntityRepository businessEntityRepository;
+    private final InventoryRepository inventoryRepository;
 
     @Autowired
-    InventoryRepository inventoryRepository;
+    public BusinessEntityService(BusinessEntityRepository businessEntityRepository, InventoryRepository inventoryRepository) {
+        this.businessEntityRepository = businessEntityRepository;
+        this.inventoryRepository = inventoryRepository;
+    }
 
     public List<BusinessEntityResponseDto> getAllBusinessEntities() {
         List<BusinessEntityResponseDto> businessEntities = businessEntityRepository.findAll().stream()
