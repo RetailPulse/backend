@@ -56,7 +56,6 @@ public class RetailPulseConfig {
       c.configurationSource(corsConfigurationSource());
     });
 
-    http.csrf(csrf -> csrf.disable());
     return http.build();
   }
 

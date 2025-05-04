@@ -16,9 +16,12 @@ import java.util.logging.Logger;
 public class ProductController {
 
     private static final Logger logger = Logger.getLogger(ProductController.class.getName());
+    private final ProductService productService;
 
     @Autowired
-    ProductService productService;
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
@@ -36,9 +39,14 @@ public class ProductController {
 
     @GetMapping("/sku/{sku}")
     public ResponseEntity<Product> getProductBySKU(@PathVariable String sku) {
-        logger.info("Fetching product with sku: " + sku);
-        Product product = productService.getProductBySKU(sku)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product not found with sku: " + sku));
+        if (sku == null || sku.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SKU cannot be null or empty");
+        }
+
+        String strSku = sku.replace("[\n\r]", "_");
+        logger.info("Fetching product with sku: " + strSku);
+        Product product = productService.getProductBySKU(strSku)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product not found with sku: " + strSku));
         return ResponseEntity.ok(product);
     }
 

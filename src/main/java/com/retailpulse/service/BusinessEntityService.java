@@ -19,12 +19,16 @@ public class BusinessEntityService {
     private static final String BUSINESS_ENTITY_NOT_FOUND = "BUSINESS_ENTITY_NOT_FOUND";
     private static final String BUSINESS_ENTITY_DELETED = "BUSINESS_ENTITY_DELETED";
     private static final String HAS_PRODUCT_IN_INVENTORY = "HAS_PRODUCT_IN_INVENTORY";
+    private static final String BUSINESS_ENTITY_NOT_FOUND_DESC = "Business Entity not found with id: ";
+
+    private final BusinessEntityRepository businessEntityRepository;
+    private final InventoryRepository inventoryRepository;
 
     @Autowired
-    BusinessEntityRepository businessEntityRepository;
-
-    @Autowired
-    InventoryRepository inventoryRepository;
+    public BusinessEntityService(BusinessEntityRepository businessEntityRepository, InventoryRepository inventoryRepository) {
+        this.businessEntityRepository = businessEntityRepository;
+        this.inventoryRepository = inventoryRepository;
+    }
 
     public List<BusinessEntityResponseDto> getAllBusinessEntities() {
         List<BusinessEntityResponseDto> businessEntities = businessEntityRepository.findAll().stream()
@@ -43,7 +47,7 @@ public class BusinessEntityService {
 
     public BusinessEntityResponseDto getBusinessEntityById(Long id) {
         BusinessEntity businessEntity = businessEntityRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(BUSINESS_ENTITY_NOT_FOUND, "Business Entity not found with id: " + id));
+                .orElseThrow(() -> new BusinessException(BUSINESS_ENTITY_NOT_FOUND, BUSINESS_ENTITY_NOT_FOUND_DESC + id));
 
         BusinessEntityResponseDto businessEntityResponseDto = new BusinessEntityResponseDto(businessEntity.getId(),
                 businessEntity.getName(),
@@ -70,7 +74,7 @@ public class BusinessEntityService {
 
     public BusinessEntityResponseDto updateBusinessEntity(Long id, BusinessEntityRequestDto businessEntityDetails) {
         BusinessEntity businessEntity = businessEntityRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(BUSINESS_ENTITY_NOT_FOUND, "Business Entity not found with id: " + id));
+                .orElseThrow(() -> new BusinessException(BUSINESS_ENTITY_NOT_FOUND, BUSINESS_ENTITY_NOT_FOUND_DESC + id));
 
         if (!businessEntity.isActive()) {
             throw new BusinessException(BUSINESS_ENTITY_DELETED, "Cannot update a deleted business entity with id: " + id);
@@ -106,7 +110,7 @@ public class BusinessEntityService {
 
     public BusinessEntityResponseDto deleteBusinessEntity(Long id) {
         BusinessEntity businessEntity = businessEntityRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(BUSINESS_ENTITY_NOT_FOUND, "Business Entity not found with id: " + id));
+                .orElseThrow(() -> new BusinessException(BUSINESS_ENTITY_NOT_FOUND, BUSINESS_ENTITY_NOT_FOUND_DESC + id));
 
         if (!businessEntity.isActive()) {
             throw new BusinessException(BUSINESS_ENTITY_DELETED, "Business Entity with id " + id + " is already deleted.");

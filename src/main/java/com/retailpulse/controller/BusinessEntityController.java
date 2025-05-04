@@ -18,10 +18,13 @@ public class BusinessEntityController {
 
     private static final Logger logger = Logger.getLogger(BusinessEntityController.class.getName());
     private static final String INVALID_REQUEST = "INVALID_REQUEST";
+    private final BusinessEntityService businessEntityService;
 
     @Autowired
-    BusinessEntityService businessEntityService;
-
+    public BusinessEntityController(BusinessEntityService businessEntityService) {
+        this.businessEntityService = businessEntityService;
+    }
+    
     @GetMapping
     public ResponseEntity<List<BusinessEntityResponseDto>> getAllBusinessEntities() {
         logger.info("Fetching all business entities");

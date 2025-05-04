@@ -18,18 +18,23 @@ import java.util.function.Consumer;
 
 @Service
 public class InventoryTransactionService {
-    @Autowired
-    private InventoryTransactionRepository inventoryTransactionRepository;
 
+    private final InventoryTransactionRepository inventoryTransactionRepository;
+    private final InventoryService inventoryService;
+    private final ProductService productService;
+    private final BusinessEntityRepository businessEntityRepository;
+    
     @Autowired
-    private InventoryService inventoryService;
-
-    @Autowired
-    private ProductService productService;
-
-    @Autowired
-    private BusinessEntityRepository businessEntityRepository;
-
+    public InventoryTransactionService(InventoryTransactionRepository inventoryTransactionRepository,
+                                        InventoryService inventoryService,
+                                        ProductService productService,
+                                        BusinessEntityRepository businessEntityRepository) {
+        this.inventoryTransactionRepository = inventoryTransactionRepository;
+        this.inventoryService = inventoryService;
+        this.productService = productService;
+        this.businessEntityRepository = businessEntityRepository;
+    }
+    
     public List<InventoryTransactionProductDto> getAllInventoryTransactionWithProduct() {
         return inventoryTransactionRepository.findAllWithProduct();
     }

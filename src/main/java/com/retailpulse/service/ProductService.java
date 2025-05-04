@@ -14,15 +14,19 @@ import java.util.function.Consumer;
 @Service
 public class ProductService {
 
-    @Autowired
-    private SKUGeneratorService skuGeneratorService;
+    private static final String PRODUCT_NOT_FOUND_DESC = "Product not found with id: ";
+
+    private final SKUGeneratorService skuGeneratorService;
+    private final ProductRepository productRepository;
+    private final InventoryService inventoryService;
 
     @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private InventoryService inventoryService;
-
+    public ProductService(SKUGeneratorService skuGeneratorService, ProductRepository productRepository, InventoryService inventoryService) {
+        this.skuGeneratorService = skuGeneratorService;
+        this.productRepository = productRepository;
+        this.inventoryService = inventoryService;
+    }
+    
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
@@ -48,7 +52,7 @@ public class ProductService {
 
     public Product updateProduct(Long id, Product productDetails) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND_DESC + id));
 
         if (!product.isActive()) {
             throw new RuntimeException("Cannot update a deleted product with id: " + id);
@@ -85,7 +89,7 @@ public class ProductService {
 
     public Product softDeleteProduct(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND_DESC + id));
 
         if (!product.isActive()) {
             throw new IllegalArgumentException("Product with id " + id + " is already deleted.");
@@ -100,7 +104,7 @@ public class ProductService {
 
     public Product reverseSoftDelete(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException(PRODUCT_NOT_FOUND_DESC + id));
 
         updateField(true, product::setActive);
 

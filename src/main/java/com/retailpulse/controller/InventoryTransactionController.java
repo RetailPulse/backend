@@ -14,9 +14,12 @@ import java.util.logging.Logger;
 @RequestMapping("/api/inventoryTransaction")
 public class InventoryTransactionController {
     private static final Logger logger = Logger.getLogger(InventoryTransactionController.class.getName());
+    private final InventoryTransactionService inventoryTransactionService;
 
     @Autowired
-    InventoryTransactionService inventoryTransactionService;
+    public InventoryTransactionController(InventoryTransactionService inventoryTransactionService) {
+        this.inventoryTransactionService = inventoryTransactionService;
+    } 
 
     @GetMapping
     public ResponseEntity<List<InventoryTransactionProductDto>> getAllInventoryTransactionWithProduct() {
