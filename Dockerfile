@@ -12,7 +12,7 @@ COPY src ./src
 RUN mvn clean package
 
 # Second stage: Run the built JAR in a lightweight JDK image
-FROM eclipse-temurin:23-jdk-alpine AS runner
+FROM eclipse-temurin:24-jdk-alpine AS runner
 
 # Set working directory
 WORKDIR /app
