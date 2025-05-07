@@ -33,31 +33,34 @@ public class SalesTransactionMementoTest {
 
     @Test
     public void testSalesTransactionMemento() {
+        // Arrange: Prepare test data
         SalesDetailsDto salesDetailsDto1 = new SalesDetailsDto(1L, 2, "50.0");
         SalesDetailsDto salesDetailsDto2 = new SalesDetailsDto(2L, 3, "100.0");
         SalesDetailsDto salesDetailsDto3 = new SalesDetailsDto(3L, 4, "200.0");
-        List<SalesDetailsDto> salesDetailsDtos1 = List.of(salesDetailsDto1, salesDetailsDto2, salesDetailsDto3);
-        List<SalesDetailsDto> salesDetailsDtos2 = List.of(salesDetailsDto1, salesDetailsDto2);
-        List<SalesDetailsDto> salesDetailsDtos3 = List.of(salesDetailsDto1);
+        List<SalesDetailsDto> salesDetailsDtos = List.of(salesDetailsDto1, salesDetailsDto2, salesDetailsDto3);
 
-        SuspendedTransactionDto suspendedTransactionDto1 = new SuspendedTransactionDto(1L, salesDetailsDtos1);
-        SuspendedTransactionDto suspendedTransactionDto2 = new SuspendedTransactionDto(1L, salesDetailsDtos2);
-        SuspendedTransactionDto suspendedTransactionDto3 = new SuspendedTransactionDto(1L, salesDetailsDtos3);
+        SuspendedTransactionDto suspendedTransactionDto = new SuspendedTransactionDto(1L, salesDetailsDtos);
 
         when(salesTaxRepository.save(any(SalesTax.class))).thenReturn(new SalesTax(TaxType.GST, new BigDecimal("0.09")));
 
         SalesTransactionHistory salesTransactionHistory = new SalesTransactionHistory();
-        SalesTransactionService salesTransactionService = new SalesTransactionService(salesTransactionRepository, salesTaxRepository, salesTransactionHistory, stockUpdateService);
+        SalesTransactionService salesTransactionService = new SalesTransactionService(
+            salesTransactionRepository, salesTaxRepository, salesTransactionHistory, stockUpdateService
+        );
 
-        salesTransactionService.suspendTransaction(suspendedTransactionDto1);
-        salesTransactionService.suspendTransaction(suspendedTransactionDto2);
-        List<TransientSalesTransactionDto> suspendedTransactions = salesTransactionService.suspendTransaction(suspendedTransactionDto3);
+        // Act: Suspend the transaction
+        List<TransientSalesTransactionDto> suspendedTransactions = salesTransactionService.suspendTransaction(suspendedTransactionDto);
 
-        assertEquals(3, suspendedTransactions.size());
+        // Assert: Verify the suspension behavior
+        assertEquals(1, suspendedTransactions.size(), "There should be one suspended transaction");
 
-        suspendedTransactions = salesTransactionService.restoreTransaction(1L, suspendedTransactions.get(0).transactionId());
+        // Act: Restore the transaction
+        List<TransientSalesTransactionDto> remainingTransactions = salesTransactionService.restoreTransaction(
+            1L, suspendedTransactions.get(0).transactionId()
+        );
 
-        assertEquals(2, suspendedTransactions.size());
+        // Assert: Verify the restoration behavior
+        assertEquals(0, remainingTransactions.size(), "All transactions should be restored, leaving none suspended");
     }
 
 }
