@@ -39,11 +39,11 @@ public class ReportController {
         logger.info("Fetching all inventory transactions");
 
         if (startDateTime == null || startDateTime.isBlank()) {
-            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time parameter cannot be blank");
         }
 
         if (endDateTime == null || endDateTime.isBlank()) {
-            throw new ApplicationException(INVALID_DATE_RANGE, "Start date time cannot be after end date time");
+            throw new ApplicationException(INVALID_DATE_RANGE, "End date time parameter cannot be blank");
         }
 
         Instant startInstant;
